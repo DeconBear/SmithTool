@@ -39,12 +39,30 @@ jobs:
       - name: Build and Deploy Release Payload
         shell: pwsh
         run: |
-          $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:Path"
-          $env:CMAKE_PREFIX_PATH = "C:\msys64\mingw64"
-          $env:BUILD_JOBS = "2"
-          cmd /c "deploy\windows\build.bat"
-          if (!(Test-Path "deploy\release\SmithTool.exe")) {
-            throw "Build step finished but deploy/release/SmithTool.exe is missing."
+          $ErrorActionPreference = "Stop"
+          $qtRoot = "C:\msys64\mingw64"
+          $qtConfig = "$qtRoot\lib\cmake\Qt6\Qt6Config.cmake"
+          $buildDir = "build-release"
+          $deployDir = "deploy\release"
+          if (!(Test-Path $qtConfig)) {
+            throw "Qt6Config.cmake not found at $qtConfig"
+          }
+          $env:Path = "$qtRoot\bin;C:\msys64\usr\bin;$env:Path"
+          cmake -S . -B $buildDir -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_PREFIX_PATH="$qtRoot" `
+            -DCMAKE_C_COMPILER="$qtRoot\bin\gcc.exe" `
+            -DCMAKE_CXX_COMPILER="$qtRoot\bin\g++.exe"
+          cmake --build $buildDir --config Release --parallel 2
+          New-Item -ItemType Directory -Path $deployDir -Force | Out-Null
+          Copy-Item "$buildDir\SmithTool.exe" "$deployDir\SmithTool.exe" -Force
+          $windeploy = @("$qtRoot\bin\windeployqt6.exe", "$qtRoot\bin\windeployqt.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (!$windeploy) {
+            throw "windeployqt tool not found under $qtRoot\\bin"
+          }
+          & $windeploy --release --no-translations "$deployDir\SmithTool.exe"
+          if (!(Test-Path "$deployDir\SmithTool.exe")) {
+            throw "Build step finished but $deployDir\\SmithTool.exe is missing."
           }
 
       - name: Build Windows Installer
