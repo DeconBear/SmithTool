@@ -159,6 +159,28 @@ for %%F in (
     )
 )
 
+for %%F in ("%CMAKE_PREFIX_PATH%\bin\libicu*.dll") do (
+    if exist "%%~fF" (
+        if not exist "%DEPLOY_DIR%\%%~nxF" (
+            copy /Y "%%~fF" "%DEPLOY_DIR%\%%~nxF" >nul
+        )
+    )
+)
+for %%F in ("%CMAKE_PREFIX_PATH%\bin\libjpeg-*.dll") do (
+    if exist "%%~fF" (
+        if not exist "%DEPLOY_DIR%\%%~nxF" (
+            copy /Y "%%~fF" "%DEPLOY_DIR%\%%~nxF" >nul
+        )
+    )
+)
+for %%F in (libgio-2.0-0.dll libgobject-2.0-0.dll) do (
+    if exist "%CMAKE_PREFIX_PATH%\bin\%%F" (
+        if not exist "%DEPLOY_DIR%\%%F" (
+            copy /Y "%CMAKE_PREFIX_PATH%\bin\%%F" "%DEPLOY_DIR%\%%F" >nul
+        )
+    )
+)
+
 if not exist "%DEPLOY_DIR%\Qt6Core.dll" (
     echo ERROR: Missing runtime dependency Qt6Core.dll
     exit /b 1
@@ -185,6 +207,16 @@ if not exist "%DEPLOY_DIR%\libgcc_s_seh-1.dll" (
 )
 if not exist "%DEPLOY_DIR%\libwinpthread-1.dll" (
     echo ERROR: Missing runtime dependency libwinpthread-1.dll
+    exit /b 1
+)
+dir /b "%DEPLOY_DIR%\libicuin*.dll" >nul 2>&1
+if errorlevel 1 (
+    echo ERROR: Missing runtime dependency libicuin*.dll
+    exit /b 1
+)
+dir /b "%DEPLOY_DIR%\libicuuc*.dll" >nul 2>&1
+if errorlevel 1 (
+    echo ERROR: Missing runtime dependency libicuuc*.dll
     exit /b 1
 )
 

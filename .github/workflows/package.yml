@@ -80,9 +80,6 @@ jobs:
             "libgraphite2.dll",
             "libharfbuzz-0.dll",
             "libiconv-2.dll",
-            "libicudt77.dll",
-            "libicuin77.dll",
-            "libicuuc77.dll",
             "libintl-8.dll",
             "libmd4c.dll",
             "libpcre2-16-0.dll",
@@ -101,13 +98,86 @@ jobs:
             }
           }
 
+          # Copy versioned runtime DLLs that vary across MSYS2/Qt updates.
+          foreach ($pattern in @("libicu*.dll", "libjpeg-*.dll", "libgio-2.0-0.dll", "libgobject-2.0-0.dll")) {
+            Get-ChildItem "$qtRoot\bin" -Filter $pattern -File -ErrorAction SilentlyContinue | ForEach-Object {
+              $dst = Join-Path $deployDir $_.Name
+              if (!(Test-Path $dst)) {
+                Copy-Item $_.FullName $dst -Force
+              }
+            }
+          }
+
+          # Resolve any remaining non-system missing DLLs by scanning import tables recursively.
+          $objdump = Join-Path "$qtRoot\bin" "objdump.exe"
+          if (!(Test-Path $objdump)) {
+            throw "objdump.exe not found at $objdump"
+          }
+          function Get-ImportedDllNames([string]$binaryPath) {
+            $lines = & $objdump -p $binaryPath 2>$null
+            $dlls = @()
+            foreach ($line in $lines) {
+              if ($line -match "DLL Name:\\s*(.+)$") {
+                $dlls += $Matches[1].Trim()
+              }
+            }
+            return $dlls | Sort-Object -Unique
+          }
+          for ($iter = 0; $iter -lt 6; $iter++) {
+            $deployFiles = Get-ChildItem $deployDir -Recurse -File | Where-Object { $_.Extension -in @(".exe", ".dll") }
+            $present = @{}
+            foreach ($f in $deployFiles) { $present[$f.Name.ToUpperInvariant()] = $true }
+            $missing = New-Object System.Collections.Generic.List[string]
+            foreach ($f in $deployFiles) {
+              $imports = Get-ImportedDllNames $f.FullName
+              foreach ($dll in $imports) {
+                $up = $dll.ToUpperInvariant()
+                if ($up.StartsWith("API-MS-WIN-") -or $up.StartsWith("EXT-MS-")) { continue }
+                if ($present.ContainsKey($up)) { continue }
+                if (Test-Path (Join-Path "$env:WINDIR\System32" $dll)) { continue }
+                if (Test-Path (Join-Path "$env:WINDIR\SysWOW64" $dll)) { continue }
+                if (-not $missing.Contains($dll)) { $missing.Add($dll) }
+              }
+            }
+            if ($missing.Count -eq 0) { break }
+            $copiedAny = $false
+            foreach ($dll in $missing) {
+              $src = Join-Path "$qtRoot\bin" $dll
+              $dst = Join-Path $deployDir $dll
+              if ((Test-Path $src) -and !(Test-Path $dst)) {
+                Copy-Item $src $dst -Force
+                $copiedAny = $true
+              }
+            }
+            if (-not $copiedAny) { break }
+          }
+
+          $deployFiles = Get-ChildItem $deployDir -Recurse -File | Where-Object { $_.Extension -in @(".exe", ".dll") }
+          $present = @{}
+          foreach ($f in $deployFiles) { $present[$f.Name.ToUpperInvariant()] = $true }
+          $unresolved = New-Object System.Collections.Generic.List[string]
+          foreach ($f in $deployFiles) {
+            $imports = Get-ImportedDllNames $f.FullName
+            foreach ($dll in $imports) {
+              $up = $dll.ToUpperInvariant()
+              if ($up.StartsWith("API-MS-WIN-") -or $up.StartsWith("EXT-MS-")) { continue }
+              if ($present.ContainsKey($up)) { continue }
+              if (Test-Path (Join-Path "$env:WINDIR\System32" $dll)) { continue }
+              if (Test-Path (Join-Path "$env:WINDIR\SysWOW64" $dll)) { continue }
+              if (-not $unresolved.Contains($dll)) { $unresolved.Add($dll) }
+            }
+          }
+          if ($unresolved.Count -gt 0) {
+            throw ("Unresolved non-system runtime dependencies: " + (($unresolved | Sort-Object) -join ", "))
+          }
+
           $requiredRuntime = @(
             "$deployDir\SmithTool.exe",
             "$deployDir\Qt6Core.dll",
             "$deployDir\Qt6Gui.dll",
             "$deployDir\Qt6Widgets.dll",
-            "$deployDir\libstdc++-6.dll",
             "$deployDir\libgcc_s_seh-1.dll",
+            "$deployDir\libstdc++-6.dll",
             "$deployDir\libwinpthread-1.dll",
             "$deployDir\platforms\qwindows.dll"
           )
@@ -115,6 +185,12 @@ jobs:
             if (!(Test-Path $file)) {
               throw "Missing runtime dependency: $file"
             }
+          }
+          if (@(Get-ChildItem $deployDir -Filter "libicuin*.dll" -File -ErrorAction SilentlyContinue).Count -eq 0) {
+            throw "Missing ICU runtime dependency: libicuin*.dll"
+          }
+          if (@(Get-ChildItem $deployDir -Filter "libicuuc*.dll" -File -ErrorAction SilentlyContinue).Count -eq 0) {
+            throw "Missing ICU runtime dependency: libicuuc*.dll"
           }
 
       - name: Build Windows Installer
