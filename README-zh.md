@@ -57,6 +57,15 @@ cmake --build SmithTool/build-linux -j$(nproc)
 - 菜单切换语言：`Language -> English / Simplified Chinese`
 - 语言偏好会保存，并在重启后生效。
 
+## 终端用户运行时（Windows）
+
+- 终端用户**不需要单独安装 Qt**。
+- 请使用以下打包产物之一：
+  - Windows 安装向导（`Setup.exe`）
+  - Windows 便携包（`windows-portable.zip`）
+- 这些发布包已包含 Qt 运行时和 MinGW 运行时 DLL。
+- 不要单独分发/使用裸 `SmithTool.exe`（缺少配套 DLL 时无法运行）。
+
 ## 打包
 
 - Windows 安装包（`.exe`）：基于 Inno Setup

@@ -19,6 +19,11 @@ Output:
 - Deploy payload: `deploy\release\`
 - Installer: `deploy\windows\installer\*.exe`
 
+Runtime note:
+
+- End users do not need a separate Qt installation when using the generated installer or portable bundle.
+- Ensure `deploy\release\` includes Qt + MinGW runtime DLLs before packaging.
+
 ## Debian
 
 Use the Linux packaging script:

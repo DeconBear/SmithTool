@@ -66,12 +66,58 @@ jobs:
             throw "windeployqt tool not found under $qtRoot\\bin"
           }
           & $windeploy --release --no-translations "$deployDir\SmithTool.exe"
-          if (!(Test-Path "$deployDir\SmithTool.exe")) {
-            throw "Build step finished but $deployDir\\SmithTool.exe is missing."
+
+          # Ensure MinGW runtime DLLs are bundled so end-users do not need Qt/MSYS2 installed.
+          $runtimeDllCandidates = @(
+            "libb2-1.dll",
+            "libbrotlicommon.dll",
+            "libbrotlidec.dll",
+            "libbz2-1.dll",
+            "libdouble-conversion.dll",
+            "libfreetype-6.dll",
+            "libgcc_s_seh-1.dll",
+            "libglib-2.0-0.dll",
+            "libgraphite2.dll",
+            "libharfbuzz-0.dll",
+            "libiconv-2.dll",
+            "libicudt77.dll",
+            "libicuin77.dll",
+            "libicuuc77.dll",
+            "libintl-8.dll",
+            "libmd4c.dll",
+            "libpcre2-16-0.dll",
+            "libpcre2-8-0.dll",
+            "libpng16-16.dll",
+            "libstdc++-6.dll",
+            "libwinpthread-1.dll",
+            "libzstd.dll",
+            "zlib1.dll"
+          )
+          foreach ($dll in $runtimeDllCandidates) {
+            $src = Join-Path "$qtRoot\bin" $dll
+            $dst = Join-Path $deployDir $dll
+            if ((Test-Path $src) -and !(Test-Path $dst)) {
+              Copy-Item $src $dst -Force
+            }
+          }
+
+          $requiredRuntime = @(
+            "$deployDir\SmithTool.exe",
+            "$deployDir\Qt6Core.dll",
+            "$deployDir\Qt6Gui.dll",
+            "$deployDir\Qt6Widgets.dll",
+            "$deployDir\libstdc++-6.dll",
+            "$deployDir\libgcc_s_seh-1.dll",
+            "$deployDir\libwinpthread-1.dll",
+            "$deployDir\platforms\qwindows.dll"
+          )
+          foreach ($file in $requiredRuntime) {
+            if (!(Test-Path $file)) {
+              throw "Missing runtime dependency: $file"
+            }
           }
 
       - name: Build Windows Installer
-        continue-on-error: true
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -86,12 +132,10 @@ jobs:
             if ($isccCmd) { $iscc = $isccCmd.Source }
           }
           if (!$iscc) {
-            Write-Warning "ISCC executable not found after choco install innosetup; skipping installer build."
-            exit 0
+            throw "ISCC executable not found after choco install innosetup."
           }
           if (!(Test-Path "deploy\release\SmithTool.exe")) {
-            Write-Warning "deploy\\release\\SmithTool.exe is missing before installer build; skipping installer build."
-            exit 0
+            throw "deploy\\release\\SmithTool.exe is missing before installer build."
           }
           & $iscc "deploy\windows\smithtool.iss"
 
@@ -111,7 +155,6 @@ jobs:
           path: |
             deploy/windows/installer/*.exe
             deploy/windows/installer/*.zip
-            deploy/release/**
           if-no-files-found: error
 
   debian-package:

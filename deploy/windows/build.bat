@@ -126,6 +126,69 @@ if errorlevel 1 (
 )
 
 echo.
+echo [3.5/4] Copying MinGW runtime dependencies...
+for %%F in (
+    libb2-1.dll
+    libbrotlicommon.dll
+    libbrotlidec.dll
+    libbz2-1.dll
+    libdouble-conversion.dll
+    libfreetype-6.dll
+    libgcc_s_seh-1.dll
+    libglib-2.0-0.dll
+    libgraphite2.dll
+    libharfbuzz-0.dll
+    libiconv-2.dll
+    libicudt77.dll
+    libicuin77.dll
+    libicuuc77.dll
+    libintl-8.dll
+    libmd4c.dll
+    libpcre2-16-0.dll
+    libpcre2-8-0.dll
+    libpng16-16.dll
+    libstdc++-6.dll
+    libwinpthread-1.dll
+    libzstd.dll
+    zlib1.dll
+) do (
+    if exist "%CMAKE_PREFIX_PATH%\bin\%%F" (
+        if not exist "%DEPLOY_DIR%\%%F" (
+            copy /Y "%CMAKE_PREFIX_PATH%\bin\%%F" "%DEPLOY_DIR%\%%F" >nul
+        )
+    )
+)
+
+if not exist "%DEPLOY_DIR%\Qt6Core.dll" (
+    echo ERROR: Missing runtime dependency Qt6Core.dll
+    exit /b 1
+)
+if not exist "%DEPLOY_DIR%\Qt6Gui.dll" (
+    echo ERROR: Missing runtime dependency Qt6Gui.dll
+    exit /b 1
+)
+if not exist "%DEPLOY_DIR%\Qt6Widgets.dll" (
+    echo ERROR: Missing runtime dependency Qt6Widgets.dll
+    exit /b 1
+)
+if not exist "%DEPLOY_DIR%\platforms\qwindows.dll" (
+    echo ERROR: Missing runtime dependency platforms\qwindows.dll
+    exit /b 1
+)
+if not exist "%DEPLOY_DIR%\libstdc++-6.dll" (
+    echo ERROR: Missing runtime dependency libstdc++-6.dll
+    exit /b 1
+)
+if not exist "%DEPLOY_DIR%\libgcc_s_seh-1.dll" (
+    echo ERROR: Missing runtime dependency libgcc_s_seh-1.dll
+    exit /b 1
+)
+if not exist "%DEPLOY_DIR%\libwinpthread-1.dll" (
+    echo ERROR: Missing runtime dependency libwinpthread-1.dll
+    exit /b 1
+)
+
+echo.
 echo [4/4] Build complete!
 echo.
 echo Output files are in: %DEPLOY_DIR%
