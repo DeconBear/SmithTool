@@ -148,8 +148,8 @@ QString SpiceExporter::generateSubcircuit(const MatchingTrace& trace, const QStr
         }
     }
     
-    // Connect last node to OUT
-    out << QString("ROUT %1 OUT 0\n").arg(currentNode);  // Zero resistance connection
+    // Connect last node to OUT (tiny resistance keeps broad SPICE compatibility)
+    out << QString("ROUT %1 OUT 1u\n").arg(currentNode);
     
     out << ".ENDS " << name << "\n";
     
@@ -222,28 +222,39 @@ QString SpiceExporter::formatLoadImpedance(int nodeNum) const
     QTextStream out(&load);
     
     out << "* Load Impedance\n";
-    
-    int loadNode = nodeNum;
-    
-    // Load resistance (real part)
-    if (std::abs(m_loadZ.real()) > 1e-9) {
-        out << formatResistor("RL", loadNode, 0, m_loadZ.real());
-    }
-    
-    // Load reactance (imaginary part)
-    if (std::abs(m_loadZ.imag()) > 1e-9) {
-        double X = m_loadZ.imag();
-        if (X > 0) {
-            // Inductive (series with load R)
-            double L = X / (2.0 * M_PI * m_frequency);
-            out << formatInductor("LL", loadNode, 0, L);
+
+    const bool hasR = std::abs(m_loadZ.real()) > 1e-9;
+    const bool hasX = std::abs(m_loadZ.imag()) > 1e-9;
+
+    int reactiveStartNode = nodeNum;
+
+    // Model ZL = R + jX as a series branch to ground.
+    if (hasR) {
+        if (hasX) {
+            int seriesNode = nodeNum + 1;
+            out << formatResistor("RL", nodeNum, seriesNode, m_loadZ.real());
+            reactiveStartNode = seriesNode;
         } else {
-            // Capacitive
-            double C = -1.0 / (2.0 * M_PI * m_frequency * X);
-            out << formatCapacitor("CL", loadNode, 0, C);
+            out << formatResistor("RL", nodeNum, 0, m_loadZ.real());
         }
     }
-    
+
+    if (hasX) {
+        double X = m_loadZ.imag();
+        if (X > 0) {
+            double L = X / (2.0 * M_PI * m_frequency);
+            out << formatInductor("LL", reactiveStartNode, 0, L);
+        } else {
+            double C = -1.0 / (2.0 * M_PI * m_frequency * X);
+            out << formatCapacitor("CL", reactiveStartNode, 0, C);
+        }
+    }
+
+    if (!hasR && !hasX) {
+        // ZL = 0 is an ideal short; use a tiny resistor for simulator robustness.
+        out << formatResistor("RL", nodeNum, 0, 1e-6);
+    }
+
     return load;
 }
 

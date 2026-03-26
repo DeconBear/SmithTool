@@ -35,13 +35,20 @@ bool TouchstoneParser::parse(const QString& filename)
     
     QTextStream in(&file);
     bool optionFound = false;
+    bool hasData = false;
     
     while (!in.atEnd()) {
-        QString line = in.readLine().trimmed();
+        QString line = in.readLine();
+
+        // Remove inline comments.
+        int commentPos = line.indexOf('!');
+        if (commentPos >= 0) {
+            line = line.left(commentPos);
+        }
+        line = line.trimmed();
         
         // Skip empty lines and comments
         if (line.isEmpty()) continue;
-        if (line.startsWith('!')) continue;
         
         // Option line
         if (line.startsWith('#')) {
@@ -55,14 +62,21 @@ bool TouchstoneParser::parse(const QString& filename)
         
         // Data line
         if (optionFound) {
-            if (!parseDataLine(line, ports)) {
-                // Non-fatal: might be a comment without !
-                continue;
+            if (parseDataLine(line, ports)) {
+                hasData = true;
             }
         }
     }
     
     file.close();
+    if (!optionFound) {
+        m_lastError = "Missing Touchstone option line (# ...).";
+        return false;
+    }
+    if (!hasData) {
+        m_lastError = "No valid data points found.";
+        return false;
+    }
     m_data.sortByFrequency();
     return true;
 }
@@ -93,8 +107,19 @@ bool TouchstoneParser::parseOptionLine(const QString& line)
         else if (part == "DB") m_format = SParamFormat::DB;
         
         // Reference impedance
-        else if (part == "R" && i + 1 < parts.size()) {
-            m_data.setReferenceImpedance(parts[i + 1].toDouble());
+        else if (part == "R") {
+            if (i + 1 >= parts.size()) {
+                m_lastError = "Missing reference impedance value after R in option line.";
+                return false;
+            }
+            bool ok = false;
+            double z0 = parts[i + 1].toDouble(&ok);
+            if (!ok || z0 <= 0.0) {
+                m_lastError = QString("Invalid reference impedance in option line: %1")
+                                  .arg(parts[i + 1]);
+                return false;
+            }
+            m_data.setReferenceImpedance(z0);
             ++i;
         }
     }
@@ -113,19 +138,42 @@ bool TouchstoneParser::parseDataLine(const QString& line, PortCount ports)
     
     bool ok;
     double freq = parts[0].toDouble(&ok) * m_freqMultiplier;
-    if (!ok) return false;
+    if (!ok || !std::isfinite(freq)) return false;
     
     SParamPoint point;
     point.frequency = freq;
+
+    auto parseNumber = [&parts](int index, double& out) -> bool {
+        bool parsed = false;
+        out = parts[index].toDouble(&parsed);
+        return parsed && std::isfinite(out);
+    };
     
     if (ports == PortCount::OnePort) {
-        point.s11 = parseValue(parts[1].toDouble(), parts[2].toDouble());
+        double v1 = 0.0;
+        double v2 = 0.0;
+        if (!parseNumber(1, v1) || !parseNumber(2, v2)) {
+            return false;
+        }
+        point.s11 = parseValue(v1, v2);
     } else {
         // Two port: S11, S21, S12, S22
-        point.s11 = parseValue(parts[1].toDouble(), parts[2].toDouble());
-        point.s21 = parseValue(parts[3].toDouble(), parts[4].toDouble());
-        point.s12 = parseValue(parts[5].toDouble(), parts[6].toDouble());
-        point.s22 = parseValue(parts[7].toDouble(), parts[8].toDouble());
+        double v11_1 = 0.0, v11_2 = 0.0;
+        double v21_1 = 0.0, v21_2 = 0.0;
+        double v12_1 = 0.0, v12_2 = 0.0;
+        double v22_1 = 0.0, v22_2 = 0.0;
+
+        if (!parseNumber(1, v11_1) || !parseNumber(2, v11_2) ||
+            !parseNumber(3, v21_1) || !parseNumber(4, v21_2) ||
+            !parseNumber(5, v12_1) || !parseNumber(6, v12_2) ||
+            !parseNumber(7, v22_1) || !parseNumber(8, v22_2)) {
+            return false;
+        }
+
+        point.s11 = parseValue(v11_1, v11_2);
+        point.s21 = parseValue(v21_1, v21_2);
+        point.s12 = parseValue(v12_1, v12_2);
+        point.s22 = parseValue(v22_1, v22_2);
     }
     
     m_data.addPoint(point);

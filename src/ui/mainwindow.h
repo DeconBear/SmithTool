@@ -97,6 +97,7 @@ private:
     void loadTouchstoneFile(const QString& filename);
     void updateStatusBar();
     void addMatchingElement(ComponentType type, ConnectionType conn);
+    void addMatchingElementWithBaseValue(ComponentType type, ConnectionType conn, double baseValue);
     void updateTraces();
     
     // Central widget with splitter

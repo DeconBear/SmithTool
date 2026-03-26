@@ -10,6 +10,7 @@
 #include <QStyle>
 #include <QScreen>
 #include <QInputDialog>
+#include <cmath>
 
 namespace SmithTool {
 
@@ -197,17 +198,17 @@ void MainWindow::connectSignals()
     // Element toolbar signals - Note: ElementToolbar handles value input internally
     // We connect to slots that add elements with user-input values
     connect(m_elementToolbar, &ElementToolbar::addSeriesResistor, 
-            [this](double) { onAddSeriesR(); });
+            [this](double value) { addMatchingElementWithBaseValue(ComponentType::Resistor, ConnectionType::Series, value); });
     connect(m_elementToolbar, &ElementToolbar::addSeriesInductor, 
-            [this](double) { onAddSeriesL(); });
+            [this](double value) { addMatchingElementWithBaseValue(ComponentType::Inductor, ConnectionType::Series, value); });
     connect(m_elementToolbar, &ElementToolbar::addSeriesCapacitor, 
-            [this](double) { onAddSeriesC(); });
+            [this](double value) { addMatchingElementWithBaseValue(ComponentType::Capacitor, ConnectionType::Series, value); });
     connect(m_elementToolbar, &ElementToolbar::addShuntResistor, 
-            [this](double) { onAddShuntR(); });
+            [this](double value) { addMatchingElementWithBaseValue(ComponentType::Resistor, ConnectionType::Shunt, value); });
     connect(m_elementToolbar, &ElementToolbar::addShuntInductor, 
-            [this](double) { onAddShuntL(); });
+            [this](double value) { addMatchingElementWithBaseValue(ComponentType::Inductor, ConnectionType::Shunt, value); });
     connect(m_elementToolbar, &ElementToolbar::addShuntCapacitor, 
-            [this](double) { onAddShuntC(); });
+            [this](double value) { addMatchingElementWithBaseValue(ComponentType::Capacitor, ConnectionType::Shunt, value); });
     connect(m_elementToolbar, &ElementToolbar::undoLastElement, 
             this, &MainWindow::onRemoveLastElement);
     connect(m_elementToolbar, &ElementToolbar::clearAllElements, 
@@ -480,12 +481,6 @@ void MainWindow::onLoadImpedanceChanged(std::complex<double> zl)
 
 void MainWindow::addMatchingElement(ComponentType type, ConnectionType conn)
 {
-    double freq = m_componentPanel->frequency();
-    double z0 = m_componentPanel->z0();
-    
-    m_matchingTrace.setFrequency(freq);
-    m_matchingTrace.setZ0(z0);
-    
     // Get value from user
     QString typeStr;
     QString unitStr;
@@ -540,18 +535,28 @@ void MainWindow::addMatchingElement(ComponentType type, ConnectionType conn)
             return;
     }
     
-    // Calculate and add trace segment
+    addMatchingElementWithBaseValue(type, conn, baseValue);
+}
+
+void MainWindow::addMatchingElementWithBaseValue(ComponentType type, ConnectionType conn, double baseValue)
+{
+    if (!std::isfinite(baseValue) || baseValue <= 0.0) {
+        statusBar()->showMessage(tr("Invalid component value."), 3000);
+        return;
+    }
+
+    m_matchingTrace.setFrequency(m_componentPanel->frequency());
+    m_matchingTrace.setZ0(m_componentPanel->z0());
+
     TraceSegment segment;
     if (conn == ConnectionType::Series) {
         segment = m_matchingTrace.calculateSeriesElement(type, baseValue);
     } else {
         segment = m_matchingTrace.calculateShuntElement(type, baseValue);
     }
+
     m_matchingTrace.addSegment(segment);
-    
-    // Add to circuit view
     m_circuitView->addElement(type, conn, baseValue);
-    
     updateTraces();
 }
 
@@ -644,6 +649,10 @@ void MainWindow::onTargetPointSelected(std::complex<double> /* gamma */, std::co
     Complex currentZ = m_matchingTrace.currentImpedance();
     double freq = m_componentPanel->frequency();
     double omega = 2.0 * M_PI * freq;
+    if (omega <= 0.0 || !std::isfinite(omega)) {
+        statusBar()->showMessage(tr("Invalid frequency for component calculation."), 5000);
+        return;
+    }
     
     double value = 0;
     bool validElement = true;
@@ -698,25 +707,31 @@ void MainWindow::onTargetPointSelected(std::complex<double> /* gamma */, std::co
                 }
                 break;
             case ComponentType::Resistor:
-                value = 1.0 / (targetY.real() - currentY.real());
-                if (value < 0) validElement = false;
+                {
+                    double deltaG = targetY.real() - currentY.real();
+                    if (std::abs(deltaG) > 1e-12) {
+                        value = 1.0 / deltaG;
+                        if (value < 0) validElement = false;
+                    } else {
+                        validElement = false;
+                    }
+                }
                 break;
             default:
                 validElement = false;
         }
     }
     
-    if (validElement && value > 0) {
-        // Add the element
-        addMatchingElement(type, conn);
-        
-        // Update the element value in the trace
-        // The last segment was just added, update its value
-        
-        statusBar()->showMessage(
-            tr("Added element to reach Z = %1 + j%2 \u03a9")
-                .arg(z.real(), 0, 'f', 1)
-                .arg(z.imag(), 0, 'f', 1), 5000);
+    if (validElement && std::isfinite(value) && value > 0.0) {
+        int previousCount = m_matchingTrace.numSegments();
+        addMatchingElementWithBaseValue(type, conn, value);
+
+        if (m_matchingTrace.numSegments() > previousCount) {
+            statusBar()->showMessage(
+                tr("Added element to reach Z = %1 + j%2 \u03a9")
+                    .arg(z.real(), 0, 'f', 1)
+                    .arg(z.imag(), 0, 'f', 1), 5000);
+        }
     } else {
         statusBar()->showMessage(
             tr("Cannot add %1 element to reach target point")
@@ -828,39 +843,28 @@ void MainWindow::onDeleteElement(int index)
     );
     
     if (reply == QMessageBox::Yes) {
-        // Remove element from trace
-        // For now, we can only remove the last element easily
-        // To remove from middle, we need to rebuild the trace
-        if (index == m_matchingTrace.numSegments() - 1) {
-            m_matchingTrace.removeLastSegment();
-            m_circuitView->removeLastElement();
-        } else {
-            // Remove element from middle - need to rebuild
-            // Store all segments after the deleted one
-            std::vector<TraceSegment> remaining;
-            for (int i = index + 1; i < m_matchingTrace.numSegments(); ++i) {
-                remaining.push_back(m_matchingTrace.segment(i));
-            }
-            
-            // Clear and rebuild up to deleted index
-            while (m_matchingTrace.numSegments() > index) {
-                m_matchingTrace.removeLastSegment();
-            }
-            m_circuitView->clearElements();
-            
-            // Re-add remaining elements from the remaining segments
-            for (const auto& seg : remaining) {
-                if (seg.connectionType == ConnectionType::Series) {
-                    m_matchingTrace.addSegment(
-                        m_matchingTrace.calculateSeriesElement(seg.componentType, seg.componentValue));
-                } else {
-                    m_matchingTrace.addSegment(
-                        m_matchingTrace.calculateShuntElement(seg.componentType, seg.componentValue));
-                }
-                m_circuitView->addElement(seg.componentType, seg.connectionType, seg.componentValue);
+        std::vector<TraceSegment> keptSegments;
+        keptSegments.reserve(m_matchingTrace.numSegments() - 1);
+        for (int i = 0; i < m_matchingTrace.numSegments(); ++i) {
+            if (i != index) {
+                keptSegments.push_back(m_matchingTrace.segment(i));
             }
         }
-        
+
+        m_matchingTrace.clear();
+        m_circuitView->clearElements();
+
+        for (const auto& seg : keptSegments) {
+            TraceSegment rebuilt;
+            if (seg.connectionType == ConnectionType::Series) {
+                rebuilt = m_matchingTrace.calculateSeriesElement(seg.componentType, seg.componentValue);
+            } else {
+                rebuilt = m_matchingTrace.calculateShuntElement(seg.componentType, seg.componentValue);
+            }
+            m_matchingTrace.addSegment(rebuilt);
+            m_circuitView->addElement(seg.componentType, seg.connectionType, seg.componentValue);
+        }
+
         m_smithChart->setMatchingTrace(m_matchingTrace);
         updateStatusBar();
     }

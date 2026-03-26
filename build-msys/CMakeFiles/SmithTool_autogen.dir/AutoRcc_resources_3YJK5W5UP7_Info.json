@@ -1,0 +1,23 @@
+{
+	"BUILD_DIR" : "E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys/SmithTool_autogen",
+	"CMAKE_BINARY_DIR" : "E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys",
+	"CMAKE_CURRENT_BINARY_DIR" : "E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys",
+	"CMAKE_CURRENT_SOURCE_DIR" : "E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool",
+	"CMAKE_SOURCE_DIR" : "E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool",
+	"INCLUDE_DIR" : "E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys/SmithTool_autogen/include",
+	"INPUTS" : 
+	[
+		"E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/resources/styles/dark.qss",
+		"E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/resources/styles/light.qss"
+	],
+	"LOCK_FILE" : "E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys/CMakeFiles/SmithTool_autogen.dir/AutoRcc_resources_3YJK5W5UP7_Lock.lock",
+	"MULTI_CONFIG" : false,
+	"OPTIONS" : [ "-name", "resources" ],
+	"OUTPUT_CHECKSUM" : "3YJK5W5UP7",
+	"OUTPUT_NAME" : "qrc_resources.cpp",
+	"RCC_EXECUTABLE" : "E:/msys2/mingw64/share/qt6/bin/rcc.exe",
+	"RCC_LIST_OPTIONS" : [ "--list" ],
+	"SETTINGS_FILE" : "E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys/CMakeFiles/SmithTool_autogen.dir/AutoRcc_resources_3YJK5W5UP7_Used.txt",
+	"SOURCE" : "E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/resources/resources.qrc",
+	"VERBOSITY" : 0
+}

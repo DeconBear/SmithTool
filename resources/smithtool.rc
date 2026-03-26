@@ -4,7 +4,8 @@
 #include <winver.h>
 
 // Application Icon
-IDI_ICON1 ICON "icons/smithtool.ico"
+// Icon file is optional in source distributions; keep resource buildable without it.
+// IDI_ICON1 ICON "icons/smithtool.ico"
 
 // Version Information
 VS_VERSION_INFO VERSIONINFO
