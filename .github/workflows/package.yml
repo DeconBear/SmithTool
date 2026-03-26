@@ -20,6 +20,7 @@ jobs:
 
       - name: Setup MSYS2 Qt Toolchain
         uses: msys2/setup-msys2@v2
+        id: msys2
         with:
           msystem: MINGW64
           update: true
@@ -40,14 +41,18 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $qtRoot = "C:\msys64\mingw64"
+          $msys2Root = "${{ steps.msys2.outputs.msys2-location }}"
+          if ([string]::IsNullOrWhiteSpace($msys2Root)) {
+            $msys2Root = "C:\msys64"
+          }
+          $qtRoot = Join-Path $msys2Root "mingw64"
           $qtConfig = "$qtRoot\lib\cmake\Qt6\Qt6Config.cmake"
           $buildDir = "build-release"
           $deployDir = "deploy\release"
           if (!(Test-Path $qtConfig)) {
             throw "Qt6Config.cmake not found at $qtConfig"
           }
-          $env:Path = "$qtRoot\bin;C:\msys64\usr\bin;$env:Path"
+          $env:Path = "$qtRoot\bin;$msys2Root\usr\bin;$env:Path"
           cmake -S . -B $buildDir -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_PREFIX_PATH="$qtRoot" `
