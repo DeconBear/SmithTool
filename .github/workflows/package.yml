@@ -73,9 +73,24 @@ jobs:
       - name: Build Windows Installer
         shell: pwsh
         run: |
-          Push-Location "deploy\windows"
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "smithtool.iss"
-          Pop-Location
+          $ErrorActionPreference = "Stop"
+          $isccCandidates = @(
+            "C:\ProgramData\chocolatey\bin\iscc.exe",
+            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+            "C:\Program Files\Inno Setup 6\ISCC.exe"
+          )
+          $iscc = $isccCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (!$iscc) {
+            $isccCmd = Get-Command iscc -ErrorAction SilentlyContinue
+            if ($isccCmd) { $iscc = $isccCmd.Source }
+          }
+          if (!$iscc) {
+            throw "ISCC executable not found after choco install innosetup."
+          }
+          if (!(Test-Path "deploy\release\SmithTool.exe")) {
+            throw "deploy\\release\\SmithTool.exe is missing before installer build."
+          }
+          & $iscc "deploy\windows\smithtool.iss"
 
       - name: Pack Windows Portable Bundle
         shell: pwsh
