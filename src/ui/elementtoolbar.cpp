@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file elementtoolbar.cpp
  * @brief Element toolbar implementation
  */
@@ -24,62 +24,62 @@ void ElementToolbar::setupUI()
     QWidget* valueWidget = new QWidget(this);
     QHBoxLayout* valueLayout = new QHBoxLayout(valueWidget);
     valueLayout->setContentsMargins(5, 0, 5, 0);
-    
+
     m_valueSpinBox = new QDoubleSpinBox(this);
     m_valueSpinBox->setRange(0.001, 99999);
     m_valueSpinBox->setDecimals(3);
     m_valueSpinBox->setValue(10.0);
     m_valueSpinBox->setMaximumWidth(80);
-    
+
     m_unitCombo = new QComboBox(this);
-    m_unitCombo->addItems({"nH", "µH", "mH", "pF", "nF", "µF", "Ω", "kΩ"});
+    m_unitCombo->addItems({"nH", "uH", "mH", "pF", "nF", "uF", "Ohm", "kOhm"});
     m_unitCombo->setCurrentIndex(0);
     m_unitCombo->setMaximumWidth(60);
-    
+
     valueLayout->addWidget(m_valueSpinBox);
     valueLayout->addWidget(m_unitCombo);
-    
+
     addWidget(valueWidget);
     addSeparator();
-    
+
     // Series element actions
-    m_seriesLAction = new QAction(tr("串联L"), this);
-    m_seriesLAction->setToolTip(tr("添加串联电感"));
+    m_seriesLAction = new QAction(tr("Series L"), this);
+    m_seriesLAction->setToolTip(tr("Add series inductor"));
     addAction(m_seriesLAction);
-    
-    m_seriesCAction = new QAction(tr("串联C"), this);
-    m_seriesCAction->setToolTip(tr("添加串联电容"));
+
+    m_seriesCAction = new QAction(tr("Series C"), this);
+    m_seriesCAction->setToolTip(tr("Add series capacitor"));
     addAction(m_seriesCAction);
-    
-    m_seriesRAction = new QAction(tr("串联R"), this);
-    m_seriesRAction->setToolTip(tr("添加串联电阻"));
+
+    m_seriesRAction = new QAction(tr("Series R"), this);
+    m_seriesRAction->setToolTip(tr("Add series resistor"));
     addAction(m_seriesRAction);
-    
+
     addSeparator();
-    
+
     // Shunt element actions
-    m_shuntLAction = new QAction(tr("并联L"), this);
-    m_shuntLAction->setToolTip(tr("添加并联电感"));
+    m_shuntLAction = new QAction(tr("Shunt L"), this);
+    m_shuntLAction->setToolTip(tr("Add shunt inductor"));
     addAction(m_shuntLAction);
-    
-    m_shuntCAction = new QAction(tr("并联C"), this);
-    m_shuntCAction->setToolTip(tr("添加并联电容"));
+
+    m_shuntCAction = new QAction(tr("Shunt C"), this);
+    m_shuntCAction->setToolTip(tr("Add shunt capacitor"));
     addAction(m_shuntCAction);
-    
-    m_shuntRAction = new QAction(tr("并联R"), this);
-    m_shuntRAction->setToolTip(tr("添加并联电阻"));
+
+    m_shuntRAction = new QAction(tr("Shunt R"), this);
+    m_shuntRAction->setToolTip(tr("Add shunt resistor"));
     addAction(m_shuntRAction);
-    
+
     addSeparator();
-    
+
     // Undo and clear
-    m_undoAction = new QAction(tr("撤销"), this);
+    m_undoAction = new QAction(tr("Undo"), this);
     m_undoAction->setShortcut(QKeySequence::Undo);
     addAction(m_undoAction);
-    
-    m_clearAction = new QAction(tr("清除"), this);
+
+    m_clearAction = new QAction(tr("Clear"), this);
     addAction(m_clearAction);
-    
+
     // Connections
     connect(m_seriesLAction, &QAction::triggered, this, &ElementToolbar::onAddSeriesL);
     connect(m_seriesCAction, &QAction::triggered, this, &ElementToolbar::onAddSeriesC);
@@ -89,7 +89,7 @@ void ElementToolbar::setupUI()
     connect(m_shuntRAction, &QAction::triggered, this, &ElementToolbar::onAddShuntR);
     connect(m_undoAction, &QAction::triggered, this, &ElementToolbar::undoLastElement);
     connect(m_clearAction, &QAction::triggered, this, &ElementToolbar::clearAllElements);
-    connect(m_unitCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), 
+    connect(m_unitCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ElementToolbar::onUnitChanged);
 }
 
@@ -117,16 +117,16 @@ double ElementToolbar::getScaledValue() const
 {
     double value = m_valueSpinBox->value();
     int unit = m_unitCombo->currentIndex();
-    
+
     switch (unit) {
-        case 0: return value * 1e-9;  // nH
-        case 1: return value * 1e-6;  // µH
-        case 2: return value * 1e-3;  // mH
-        case 3: return value * 1e-12; // pF
-        case 4: return value * 1e-9;  // nF
-        case 5: return value * 1e-6;  // µF
-        case 6: return value;          // Ω
-        case 7: return value * 1e3;   // kΩ
+        case 0: return value * 1e-9;   // nH
+        case 1: return value * 1e-6;   // uH
+        case 2: return value * 1e-3;   // mH
+        case 3: return value * 1e-12;  // pF
+        case 4: return value * 1e-9;   // nF
+        case 5: return value * 1e-6;   // uF
+        case 6: return value;          // Ohm
+        case 7: return value * 1e3;    // kOhm
         default: return value;
     }
 }
@@ -153,7 +153,7 @@ void ElementToolbar::onAddSeriesR()
 {
     // Switch to resistor units if needed
     if (m_unitCombo->currentIndex() < 6) {
-        m_unitCombo->setCurrentIndex(6);  // Ω
+        m_unitCombo->setCurrentIndex(6);  // Ohm
     }
     emit addSeriesResistor(getScaledValue());
 }

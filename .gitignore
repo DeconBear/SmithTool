@@ -1,0 +1,39 @@
+# Build directories
+/build/
+/build-*/
+/cmake-build-*/
+
+# CMake generated files
+CMakeCache.txt
+cmake_install.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+CMakeFiles/
+*.ninja
+.ninja_*
+
+# Compiled binaries and intermediates
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.lib
+
+# Packaging outputs
+/deploy/release/
+/deploy/windows/installer/
+/deploy/linux/dist/
+
+# IDE/editor files
+.idea/
+.vscode/
+*.user
+*.user.*
+*.suo
+
+# Logs
+*.log

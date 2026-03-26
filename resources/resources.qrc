@@ -4,4 +4,7 @@
         <file alias="dark.qss">styles/dark.qss</file>
         <file alias="light.qss">styles/light.qss</file>
     </qresource>
+    <qresource prefix="/i18n">
+        <file alias="smithtool_zh_CN.qm">translations/smithtool_zh_CN.qm</file>
+    </qresource>
 </RCC>

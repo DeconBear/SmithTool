@@ -13,6 +13,7 @@
 #include <QDockWidget>
 #include <QFileDialog>
 #include <QSplitter>
+#include <QString>
 
 #include "smithchartwidget.h"
 #include "componentpanel.h"
@@ -98,6 +99,8 @@ private:
     void updateStatusBar();
     void addMatchingElement(ComponentType type, ConnectionType conn);
     void addMatchingElementWithBaseValue(ComponentType type, ConnectionType conn, double baseValue);
+    void setLanguagePreference(const QString& languageCode);
+    QString currentLanguagePreference() const;
     void updateTraces();
     
     // Central widget with splitter
@@ -136,6 +139,8 @@ private:
     QAction* m_matchingWizardAction;
     QAction* m_aboutAction;
     QAction* m_exportSpiceAction;
+    QAction* m_langEnglishAction;
+    QAction* m_langChineseAction;
 };
 
 } // namespace SmithTool

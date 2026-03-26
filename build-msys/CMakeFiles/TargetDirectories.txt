@@ -1,4 +1,6 @@
 E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys/CMakeFiles/SmithTool.dir
+E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys/CMakeFiles/package.dir
+E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys/CMakeFiles/package_source.dir
 E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys/CMakeFiles/edit_cache.dir
 E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys/CMakeFiles/rebuild_cache.dir
 E:/BaiduSyncdisk/research/Programming_Development/Qusc_SPICE/SmithTool/build-msys/CMakeFiles/list_install_components.dir

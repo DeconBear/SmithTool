@@ -9,6 +9,7 @@ project(SmithTool
 # C++ Standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+include(GNUInstallDirs)
 
 # Qt Configuration
 set(CMAKE_AUTOMOC ON)
@@ -136,7 +137,14 @@ endif()
 
 # Install rules
 install(TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE
+    ${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md
+    ${CMAKE_CURRENT_SOURCE_DIR}/COMPLIANCE_CHECKLIST.md
+    DESTINATION ${CMAKE_INSTALL_DOCDIR}
 )
 
 # Optional: Build as library for integration
@@ -178,6 +186,28 @@ if(BUILD_TESTS)
     # target_link_libraries(test_smithmath Qt6::Test Qt6::Core)
     # add_test(NAME SmithMathTest COMMAND test_smithmath)
 endif()
+
+# Packaging
+set(CPACK_PACKAGE_NAME "smithtool")
+set(CPACK_PACKAGE_VENDOR "SmithTool")
+set(CPACK_PACKAGE_CONTACT "qzx997")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Interactive Smith Chart Tool for RF Impedance Matching")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+
+if(UNIX AND NOT APPLE)
+    set(CPACK_GENERATOR "DEB")
+    set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "qzx997")
+    set(CPACK_DEBIAN_PACKAGE_SECTION "science")
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6core6, libqt6gui6, libqt6widgets6")
+endif()
+
+include(CPack)
 
 message(STATUS "SmithTool version: ${PROJECT_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

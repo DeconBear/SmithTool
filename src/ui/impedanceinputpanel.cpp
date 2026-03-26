@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file impedanceinputpanel.cpp
  * @brief Source and Load impedance input panel implementation
  */
@@ -26,21 +26,21 @@ ImpedanceInputPanel::ImpedanceInputPanel(QWidget* parent)
 void ImpedanceInputPanel::setupUI()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    
+
     // Source impedance group
-    QGroupBox* srcGroup = new QGroupBox(tr("源端阻抗 Z_S"));
+    QGroupBox* srcGroup = new QGroupBox(tr("Source Impedance Z_S"));
     QVBoxLayout* srcLayout = new QVBoxLayout(srcGroup);
-    
+
     // Source format selection
     QHBoxLayout* srcFormatLayout = new QHBoxLayout();
-    m_srcRectBtn = new QRadioButton(tr("直角坐标"));
-    m_srcPolarBtn = new QRadioButton(tr("极坐标"));
+    m_srcRectBtn = new QRadioButton(tr("Rectangular"));
+    m_srcPolarBtn = new QRadioButton(tr("Polar"));
     m_srcRectBtn->setChecked(true);
     srcFormatLayout->addWidget(m_srcRectBtn);
     srcFormatLayout->addWidget(m_srcPolarBtn);
     srcFormatLayout->addStretch();
     srcLayout->addLayout(srcFormatLayout);
-    
+
     // Source value inputs
     QHBoxLayout* srcValueLayout = new QHBoxLayout();
     m_srcReal = new QLineEdit("50.0");
@@ -50,31 +50,31 @@ void ImpedanceInputPanel::setupUI()
     m_srcImag = new QLineEdit("0.0");
     m_srcImag->setValidator(new QDoubleValidator(-1e6, 1e6, 4, this));
     m_srcImag->setMaximumWidth(80);
-    m_srcLabel2 = new QLabel("Ω");
-    
+    m_srcLabel2 = new QLabel(tr("Ohm"));
+
     srcValueLayout->addWidget(m_srcReal);
     srcValueLayout->addWidget(m_srcLabel1);
     srcValueLayout->addWidget(m_srcImag);
     srcValueLayout->addWidget(m_srcLabel2);
     srcValueLayout->addStretch();
     srcLayout->addLayout(srcValueLayout);
-    
+
     mainLayout->addWidget(srcGroup);
-    
+
     // Load impedance group
-    QGroupBox* loadGroup = new QGroupBox(tr("负载阻抗 Z_L"));
+    QGroupBox* loadGroup = new QGroupBox(tr("Load Impedance Z_L"));
     QVBoxLayout* loadLayout = new QVBoxLayout(loadGroup);
-    
+
     // Load format selection
     QHBoxLayout* loadFormatLayout = new QHBoxLayout();
-    m_loadRectBtn = new QRadioButton(tr("直角坐标"));
-    m_loadPolarBtn = new QRadioButton(tr("极坐标"));
+    m_loadRectBtn = new QRadioButton(tr("Rectangular"));
+    m_loadPolarBtn = new QRadioButton(tr("Polar"));
     m_loadRectBtn->setChecked(true);
     loadFormatLayout->addWidget(m_loadRectBtn);
     loadFormatLayout->addWidget(m_loadPolarBtn);
     loadFormatLayout->addStretch();
     loadLayout->addLayout(loadFormatLayout);
-    
+
     // Load value inputs
     QHBoxLayout* loadValueLayout = new QHBoxLayout();
     m_loadReal = new QLineEdit("50.0");
@@ -84,42 +84,42 @@ void ImpedanceInputPanel::setupUI()
     m_loadImag = new QLineEdit("0.0");
     m_loadImag->setValidator(new QDoubleValidator(-1e6, 1e6, 4, this));
     m_loadImag->setMaximumWidth(80);
-    m_loadLabel2 = new QLabel("Ω");
-    
+    m_loadLabel2 = new QLabel(tr("Ohm"));
+
     loadValueLayout->addWidget(m_loadReal);
     loadValueLayout->addWidget(m_loadLabel1);
     loadValueLayout->addWidget(m_loadImag);
     loadValueLayout->addWidget(m_loadLabel2);
     loadValueLayout->addStretch();
     loadLayout->addLayout(loadValueLayout);
-    
+
     mainLayout->addWidget(loadGroup);
-    
+
     // Z0 group
-    QGroupBox* z0Group = new QGroupBox(tr("归一化阻抗"));
+    QGroupBox* z0Group = new QGroupBox(tr("Reference Impedance"));
     QHBoxLayout* z0Layout = new QHBoxLayout(z0Group);
-    QLabel* z0Label = new QLabel("Z₀ =");
+    QLabel* z0Label = new QLabel(tr("Z0 ="));
     m_z0Edit = new QLineEdit("50.0");
     m_z0Edit->setValidator(new QDoubleValidator(1, 1000, 2, this));
     m_z0Edit->setMaximumWidth(80);
     z0Layout->addWidget(z0Label);
     z0Layout->addWidget(m_z0Edit);
-    z0Layout->addWidget(new QLabel("Ω"));
+    z0Layout->addWidget(new QLabel(tr("Ohm")));
     z0Layout->addStretch();
-    
+
     mainLayout->addWidget(z0Group);
     mainLayout->addStretch();
-    
+
     // Connections
     connect(m_srcRectBtn, &QRadioButton::toggled, this, &ImpedanceInputPanel::onSourceFormatChanged);
     connect(m_loadRectBtn, &QRadioButton::toggled, this, &ImpedanceInputPanel::onLoadFormatChanged);
-    
+
     connect(m_srcReal, &QLineEdit::editingFinished, this, &ImpedanceInputPanel::onSourceValueChanged);
     connect(m_srcImag, &QLineEdit::editingFinished, this, &ImpedanceInputPanel::onSourceValueChanged);
     connect(m_loadReal, &QLineEdit::editingFinished, this, &ImpedanceInputPanel::onLoadValueChanged);
     connect(m_loadImag, &QLineEdit::editingFinished, this, &ImpedanceInputPanel::onLoadValueChanged);
     connect(m_z0Edit, &QLineEdit::editingFinished, this, &ImpedanceInputPanel::onZ0Changed);
-    
+
     setMinimumWidth(280);
 }
 
@@ -158,13 +158,13 @@ void ImpedanceInputPanel::onSourceFormatChanged()
 {
     if (m_srcRectBtn->isChecked()) {
         m_srcLabel1->setText("+j");
-        m_srcLabel2->setText("Ω");
+        m_srcLabel2->setText(tr("Ohm"));
         // Convert current polar to rectangular display
         m_srcReal->setText(QString::number(m_sourceZ.real(), 'f', 2));
         m_srcImag->setText(QString::number(m_sourceZ.imag(), 'f', 2));
     } else {
-        m_srcLabel1->setText("∠");
-        m_srcLabel2->setText("° Ω");
+        m_srcLabel1->setText(tr("angle"));
+        m_srcLabel2->setText(tr("deg Ohm"));
         // Convert to polar display
         double mag = std::abs(m_sourceZ);
         double phase = std::arg(m_sourceZ) * 180.0 / PI;
@@ -177,12 +177,12 @@ void ImpedanceInputPanel::onLoadFormatChanged()
 {
     if (m_loadRectBtn->isChecked()) {
         m_loadLabel1->setText("+j");
-        m_loadLabel2->setText("Ω");
+        m_loadLabel2->setText(tr("Ohm"));
         m_loadReal->setText(QString::number(m_loadZ.real(), 'f', 2));
         m_loadImag->setText(QString::number(m_loadZ.imag(), 'f', 2));
     } else {
-        m_loadLabel1->setText("∠");
-        m_loadLabel2->setText("° Ω");
+        m_loadLabel1->setText(tr("angle"));
+        m_loadLabel2->setText(tr("deg Ohm"));
         double mag = std::abs(m_loadZ);
         double phase = std::arg(m_loadZ) * 180.0 / PI;
         m_loadReal->setText(QString::number(mag, 'f', 2));
@@ -213,7 +213,9 @@ void ImpedanceInputPanel::onLoadValueChanged()
 void ImpedanceInputPanel::onZ0Changed()
 {
     m_z0 = m_z0Edit->text().toDouble();
-    if (m_z0 < 1.0) m_z0 = 1.0;
+    if (m_z0 < 1.0) {
+        m_z0 = 1.0;
+    }
     emit z0Changed(m_z0);
 }
 

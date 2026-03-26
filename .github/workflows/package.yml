@@ -1,0 +1,82 @@
+name: Package SmithTool
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2 Qt Toolchain
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-qt6-tools
+            mingw-w64-x86_64-qt6-declarative
+            mingw-w64-x86_64-qt6-svg
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Build and Deploy Release Payload
+        shell: pwsh
+        run: |
+          $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:Path"
+          $env:BUILD_JOBS = "2"
+          cmd /c "deploy\windows\build.bat"
+
+      - name: Build Windows Installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "deploy\windows\smithtool.iss"
+
+      - name: Upload Windows Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: smithtool-windows-installer
+          path: |
+            deploy/windows/installer/*.exe
+            deploy/release/**
+          if-no-files-found: error
+
+  debian-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            qt6-base-dev \
+            qt6-base-dev-tools \
+            qt6-tools-dev-tools
+
+      - name: Build Debian Package
+        run: |
+          chmod +x deploy/linux/build_deb.sh
+          ./deploy/linux/build_deb.sh
+
+      - name: Upload Debian Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: smithtool-debian-package
+          path: deploy/linux/dist/*.deb
+          if-no-files-found: error

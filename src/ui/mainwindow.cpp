@@ -10,6 +10,9 @@
 #include <QStyle>
 #include <QScreen>
 #include <QInputDialog>
+#include <QActionGroup>
+#include <QSettings>
+#include <QFileInfo>
 #include <cmath>
 
 namespace SmithTool {
@@ -137,6 +140,28 @@ void MainWindow::setupMenus()
     viewMenu->addSeparator();
     viewMenu->addAction(m_componentDock->toggleViewAction());
     viewMenu->addAction(m_impedanceDock->toggleViewAction());
+
+    // Language menu
+    QMenu* languageMenu = menuBar()->addMenu(tr("&Language"));
+    m_langEnglishAction = new QAction(tr("English"), this);
+    m_langChineseAction = new QAction(tr("Simplified Chinese"), this);
+    m_langEnglishAction->setCheckable(true);
+    m_langChineseAction->setCheckable(true);
+
+    auto* languageGroup = new QActionGroup(this);
+    languageGroup->setExclusive(true);
+    languageGroup->addAction(m_langEnglishAction);
+    languageGroup->addAction(m_langChineseAction);
+
+    const QString languageCode = currentLanguagePreference();
+    if (languageCode.startsWith("zh", Qt::CaseInsensitive)) {
+        m_langChineseAction->setChecked(true);
+    } else {
+        m_langEnglishAction->setChecked(true);
+    }
+
+    languageMenu->addAction(m_langEnglishAction);
+    languageMenu->addAction(m_langChineseAction);
     
     // Tools menu
     QMenu* toolsMenu = menuBar()->addMenu(tr("&Tools"));
@@ -184,6 +209,12 @@ void MainWindow::connectSignals()
     
     // Help actions
     connect(m_aboutAction, &QAction::triggered, this, &MainWindow::onAbout);
+    connect(m_langEnglishAction, &QAction::triggered, this, [this]() {
+        setLanguagePreference("en");
+    });
+    connect(m_langChineseAction, &QAction::triggered, this, [this]() {
+        setLanguagePreference("zh_CN");
+    });
     
     // Smith chart signals
     connect(m_smithChart, &SmithChartWidget::pointClicked, 
@@ -489,7 +520,7 @@ void MainWindow::addMatchingElement(ComponentType type, ConnectionType conn)
     switch (type) {
         case ComponentType::Resistor:
             typeStr = tr("Resistor");
-            unitStr = "Ω";
+            unitStr = tr("Ohm");
             defaultVal = 50.0;
             break;
         case ComponentType::Inductor:
@@ -593,10 +624,37 @@ void MainWindow::loadTouchstoneFile(const QString& filename)
 
 void MainWindow::updateStatusBar()
 {
-    QString msg = tr("Z₀ = %1 Ω  |  f = %2")
+    QString msg = tr("Z0 = %1 Ohm  |  f = %2 GHz")
         .arg(m_componentPanel->z0(), 0, 'f', 1)
         .arg(m_componentPanel->frequency() / 1e9, 0, 'f', 3);
     statusBar()->showMessage(msg);
+}
+
+QString MainWindow::currentLanguagePreference() const
+{
+    QSettings settings;
+    return settings.value("ui/language", "en").toString();
+}
+
+void MainWindow::setLanguagePreference(const QString& languageCode)
+{
+    const QString normalized = languageCode.startsWith("zh", Qt::CaseInsensitive) ? "zh_CN" : "en";
+    if (normalized == currentLanguagePreference()) {
+        return;
+    }
+
+    QSettings settings;
+    settings.setValue("ui/language", normalized);
+    settings.sync();
+
+    const QString languageName = (normalized == "zh_CN")
+        ? tr("Simplified Chinese")
+        : tr("English");
+    QMessageBox::information(
+        this,
+        tr("Language"),
+        tr("Language changed to %1.\nPlease restart SmithTool to apply the new language.")
+            .arg(languageName));
 }
 
 void MainWindow::onOpenMatchingWizard()

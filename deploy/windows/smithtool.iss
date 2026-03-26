@@ -2,7 +2,7 @@
 ; This script creates a Windows installer for SmithTool
 
 #define MyAppName "SmithTool"
-#define MyAppVersion "1.4.0"
+#define MyAppVersion "0.1.0"
 #define MyAppPublisher "SmithTool"
 #define MyAppURL "https://github.com/smithtool"
 #define MyAppExeName "SmithTool.exe"
@@ -17,10 +17,9 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
-LicenseFile=..\LICENSE
+LicenseFile=..\..\LICENSE
 OutputDir=installer
 OutputBaseFilename=SmithTool-{#MyAppVersion}-Setup
-SetupIconFile=..\resources\icons\smithtool.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -36,11 +35,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
 
 [Files]
-Source: "Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "Release\*.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "Release\platforms\*"; DestDir: "{app}\platforms"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "Release\styles\*"; DestDir: "{app}\styles"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "Release\imageformats\*"; DestDir: "{app}\imageformats"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
