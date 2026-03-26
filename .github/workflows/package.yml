@@ -3,8 +3,13 @@ name: Package SmithTool
 on:
   workflow_dispatch:
   push:
+    branches:
+      - "main"
     tags:
       - "v*"
+
+permissions:
+  contents: read
 
 jobs:
   windows-installer:
@@ -43,12 +48,22 @@ jobs:
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "deploy\windows\smithtool.iss"
 
+      - name: Pack Windows Portable Bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path deploy\windows\installer -Force | Out-Null
+          Compress-Archive `
+            -Path deploy\release\* `
+            -DestinationPath "deploy\windows\installer\SmithTool-${{ github.ref_name }}-windows-portable.zip" `
+            -Force
+
       - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
         with:
           name: smithtool-windows-installer
           path: |
             deploy/windows/installer/*.exe
+            deploy/windows/installer/*.zip
             deploy/release/**
           if-no-files-found: error
 
@@ -80,3 +95,34 @@ jobs:
           name: smithtool-debian-package
           path: deploy/linux/dist/*.deb
           if-no-files-found: error
+
+  publish-release:
+    needs:
+      - windows-installer
+      - debian-package
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: smithtool-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate SHA256 Checksums
+        run: |
+          cd artifacts
+          find . -type f ! -name "SHA256SUMS.txt" -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.zip
+            artifacts/**/*.deb
+            artifacts/SHA256SUMS.txt
+          generate_release_notes: true
