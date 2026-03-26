@@ -40,6 +40,7 @@ jobs:
         shell: pwsh
         run: |
           $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:Path"
+          $env:CMAKE_PREFIX_PATH = "C:\msys64\mingw64"
           $env:BUILD_JOBS = "2"
           cmd /c "deploy\windows\build.bat"
           if (!(Test-Path "deploy\release\SmithTool.exe")) {

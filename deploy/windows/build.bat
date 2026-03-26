@@ -23,6 +23,15 @@ if "%CMAKE_GENERATOR%"=="" set CMAKE_GENERATOR=Ninja
 if "%CMAKE_BUILD_TYPE%"=="" set CMAKE_BUILD_TYPE=Release
 if "%BUILD_JOBS%"=="" set BUILD_JOBS=2
 
+REM Some CI environments provide CMAKE_PREFIX_PATH in a format not usable by cmd/cmake on Windows.
+REM If Qt6Config.cmake cannot be found under the provided prefix, clear it and fallback to auto-detection.
+if not "%CMAKE_PREFIX_PATH%"=="" (
+    if not exist "%CMAKE_PREFIX_PATH%\lib\cmake\Qt6\Qt6Config.cmake" (
+        echo INFO: Ignoring invalid CMAKE_PREFIX_PATH value: %CMAKE_PREFIX_PATH%
+        set CMAKE_PREFIX_PATH=
+    )
+)
+
 if "%CMAKE_PREFIX_PATH%"=="" (
     if exist "E:\msys2\mingw64\lib\cmake\Qt6\Qt6Config.cmake" set CMAKE_PREFIX_PATH=E:\msys2\mingw64
 )
