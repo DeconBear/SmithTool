@@ -42,11 +42,16 @@ jobs:
           $env:Path = "C:\msys64\mingw64\bin;C:\msys64\usr\bin;$env:Path"
           $env:BUILD_JOBS = "2"
           cmd /c "deploy\windows\build.bat"
+          if (!(Test-Path "deploy\release\SmithTool.exe")) {
+            throw "Build step finished but deploy/release/SmithTool.exe is missing."
+          }
 
       - name: Build Windows Installer
         shell: pwsh
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "deploy\windows\smithtool.iss"
+          Push-Location "deploy\windows"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "smithtool.iss"
+          Pop-Location
 
       - name: Pack Windows Portable Bundle
         shell: pwsh

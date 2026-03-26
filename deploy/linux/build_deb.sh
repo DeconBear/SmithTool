@@ -31,9 +31,19 @@ cmake -S "${PROJECT_DIR}" -B "${BUILD_DIR}" \
 
 cmake --build "${BUILD_DIR}" --config "${BUILD_TYPE}" -j"$(nproc)"
 
-cpack --config "${BUILD_DIR}/CPackConfig.cmake" -G DEB
+# Run CPack from build directory so .deb output lands in BUILD_DIR.
+(cd "${BUILD_DIR}" && cpack --config "CPackConfig.cmake" -G DEB)
 
-find "${BUILD_DIR}" -maxdepth 1 -type f -name "*.deb" -exec cp -f {} "${OUTPUT_DIR}/" \;
+shopt -s nullglob
+debs=( "${BUILD_DIR}"/*.deb )
+if [[ ${#debs[@]} -eq 0 ]]; then
+  echo "ERROR: No .deb package generated under ${BUILD_DIR}"
+  echo "Hint: search recent package files:"
+  find "${PROJECT_DIR}" -maxdepth 3 -type f -name "*.deb" -print || true
+  exit 1
+fi
+
+cp -f "${debs[@]}" "${OUTPUT_DIR}/"
 
 echo
 echo "Done. Debian packages:"

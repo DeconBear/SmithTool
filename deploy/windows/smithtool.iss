@@ -4,8 +4,9 @@
 #define MyAppName "SmithTool"
 #define MyAppVersion "0.1.0"
 #define MyAppPublisher "SmithTool"
-#define MyAppURL "https://github.com/smithtool"
+#define MyAppURL "https://github.com/DeconBear/SmithTool"
 #define MyAppExeName "SmithTool.exe"
+#define MySourcePath SourcePath
 
 [Setup]
 AppId={{B8F2D4E1-9A3C-4D5E-8F7B-1C2D3E4F5A6B}
@@ -17,8 +18,8 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
-LicenseFile=..\..\LICENSE
-OutputDir=installer
+LicenseFile={#MySourcePath}\..\..\LICENSE
+OutputDir={#MySourcePath}\installer
 OutputBaseFilename=SmithTool-{#MyAppVersion}-Setup
 Compression=lzma
 SolidCompression=yes
@@ -35,7 +36,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
 
 [Files]
-Source: "..\release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#MySourcePath}\..\release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
