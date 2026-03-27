@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmake -S . -B build-check -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=E:/msys2/mingw64)",
+      "Read(//e/msys2/mingw64/bin/**)",
+      "Read(//c/Program Files/CMake/bin/**)"
+    ]
+  }
+}
