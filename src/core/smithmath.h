@@ -136,7 +136,7 @@ public:
     /**
      * @brief Calculate return loss in dB from reflection coefficient
      * @param gamma Reflection coefficient
-     * @return Return loss in dB (negative value)
+     * @return Return loss in dB (positive value)
      */
     static double gammaToReturnLoss(const Complex& gamma);
     

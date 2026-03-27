@@ -81,9 +81,9 @@ double ReflectionCoeff::returnLossDb() const
 {
     double mag = magnitude();
     if (mag < 1e-12) {
-        return -200.0;
+        return 200.0;
     }
-    return 20.0 * std::log10(mag);
+    return -20.0 * std::log10(mag);
 }
 
 double ReflectionCoeff::mismatchLossDb() const

@@ -179,12 +179,32 @@ option(BUILD_TESTS "Build unit tests" OFF)
 
 if(BUILD_TESTS)
     enable_testing()
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-    
-    # Add test executables here
-    # add_executable(test_smithmath tests/test_smithmath.cpp ${CORE_SOURCES})
-    # target_link_libraries(test_smithmath Qt6::Test Qt6::Core)
-    # add_test(NAME SmithMathTest COMMAND test_smithmath)
+    find_package(Qt6 REQUIRED COMPONENTS Core)
+
+    add_executable(test_matching
+        tests/test_matching.cpp
+        src/core/smithmath.cpp
+        src/core/impedance.cpp
+        src/core/component.cpp
+        src/core/matching.cpp
+    )
+
+    target_include_directories(test_matching PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+    )
+
+    target_link_libraries(test_matching PRIVATE
+        Qt6::Core
+    )
+
+    if(MSVC)
+        target_compile_options(test_matching PRIVATE /W4)
+    else()
+        target_compile_options(test_matching PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
+    add_test(NAME MatchingMathTest COMMAND test_matching)
 endif()
 
 # Packaging
