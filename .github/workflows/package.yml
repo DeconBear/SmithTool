@@ -293,3 +293,55 @@ jobs:
             artifacts/**/*.deb
             artifacts/SHA256SUMS.txt
           generate_release_notes: true
+
+  publish-nightly:
+    needs:
+      - windows-installer
+      - debian-package
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update Nightly Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f nightly "${GITHUB_SHA}"
+          git push origin refs/tags/nightly --force
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: smithtool-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate SHA256 Checksums
+        run: |
+          cd artifacts
+          find . -type f ! -name "SHA256SUMS.txt" -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+
+      - name: Create Nightly Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          target_commitish: ${{ github.sha }}
+          name: Nightly
+          prerelease: true
+          make_latest: false
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.zip
+            artifacts/**/*.deb
+            artifacts/SHA256SUMS.txt
+          body: |
+            Automated rolling build from `main`.
+
+            Commit: `${{ github.sha }}`
+          generate_release_notes: false
