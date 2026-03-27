@@ -204,62 +204,60 @@ double MatchingCalculator::susceptanceToInductance(double b, double freq)
 std::vector<MatchingSolution> MatchingCalculator::calculateLSection() const
 {
     std::vector<MatchingSolution> solutions;
-    
+
     double rs = m_sourceZ.real();
     double xs = m_sourceZ.imag();
     double rl = m_loadZ.real();
     double xl = m_loadZ.imag();
-    
+
     if (rs <= 0 || rl <= 0) {
         return solutions;
     }
-    
-    // Case 1: Rs > Rl - Shunt element at source side
-    if (rs > rl) {
-        // Calculate Q
-        double q = std::sqrt(rs / rl - 1.0);
-        
-        // Solution 1a: Shunt L, Series C (or Shunt C, Series L)
-        double b1 = q / rs;  // Shunt susceptance
-        double x1 = q * rl - xl;  // Series reactance to cancel load reactance
-        
-        // Solution 1b: Opposite signs
-        double b2 = -q / rs;
-        double x2 = -q * rl - xl;
-        
-        // Create solutions
-        solutions.push_back(createLSectionSolution(x1, b1, true));
-        solutions.push_back(createLSectionSolution(x2, b2, true));
+
+    // For reactive impedances, absorb existing reactance into the matching network.
+
+    // Orientation A: shunt element at source, series element at load
+    //   Q = sqrt(Rs/Rl - 1), B = +/-Q/Rs, X_series = +/-Q*Rl - Xl
+    {
+        for (int sign = 0; sign < 2; ++sign) {
+            double q = (sign == 0) ? std::sqrt(std::max(0.0, rs / rl - 1.0)) :
+                                      -std::sqrt(std::max(0.0, rs / rl - 1.0));
+            double b = q / rs;
+            double x1 = q * rl - xl;
+
+            solutions.push_back(createLSectionSolution(x1, b, true));
+        }
     }
-    // Case 2: Rs < Rl - Shunt element at load side
-    else if (rs < rl) {
-        double q = std::sqrt(rl / rs - 1.0);
-        
-        // Solution 2a
-        double x1 = q * rs - xs;  // Series reactance
-        double b1 = q / rl;       // Shunt susceptance
-        
-        // Solution 2b: Opposite signs
-        double x2 = -q * rs - xs;
-        double b2 = -q / rl;
-        
-        solutions.push_back(createLSectionSolution(x1, b1, false));
-        solutions.push_back(createLSectionSolution(x2, b2, false));
+
+    // Orientation B: series element at source, shunt element at load
+    //   Q = sqrt(Rl/Rs - 1), X = +/-Q*Rs - Xs, B = +/-Q/Rl
+    {
+        for (int sign = 0; sign < 2; ++sign) {
+            double q = (sign == 0) ? std::sqrt(std::max(0.0, rl / rs - 1.0)) :
+                                      -std::sqrt(std::max(0.0, rl / rs - 1.0));
+            double x = q * rs - xs;
+            double b = q / rl;
+
+            solutions.push_back(createLSectionSolution(x, b, false));
+        }
     }
-    // Case 3: Rs == Rl - Only need to cancel reactance
-    else {
-        if (std::abs(xl - xs) > 1e-12) {
+
+    // Special case: Rs == Rl (no resistance transformation needed)
+    // Only need to cancel the net reactance difference
+    if (std::abs(rs - rl) < 1e-12 * std::max(rs, rl)) {
+        double xNet = xs + xl; // Total series reactance to cancel
+        if (std::abs(xNet) > 1e-12) {
             MatchingSolution sol;
             sol.topology = MatchingTopology::LSection;
             sol.frequency = m_frequency;
             sol.sourceZ = m_sourceZ;
             sol.loadZ = m_loadZ;
             sol.valid = true;
-            
-            double xCancel = -(xl - xs);
+
+            double xCancel = -xNet;
             MatchingElement elem;
             elem.connection = ConnectionType::Series;
-            
+
             if (xCancel > 0) {
                 elem.type = ComponentType::Inductor;
                 elem.value = reactanceToInductance(xCancel, m_frequency);
@@ -271,7 +269,7 @@ std::vector<MatchingSolution> MatchingCalculator::calculateLSection() const
             solutions.push_back(sol);
         }
     }
-    
+
     return solutions;
 }
 
@@ -322,84 +320,104 @@ MatchingSolution MatchingCalculator::createLSectionSolution(
 std::vector<MatchingSolution> MatchingCalculator::calculatePiNetwork(double targetQ) const
 {
     std::vector<MatchingSolution> solutions;
-    
+
     double rs = m_sourceZ.real();
+    double xs = m_sourceZ.imag();
     double rl = m_loadZ.real();
-    
+    double xl = m_loadZ.imag();
+
     if (rs <= 0 || rl <= 0) return solutions;
-    
-    // Pi network: C1-L-C2 or L1-C-L2
+
+    // Pi network: Shunt1 - Series - Shunt2
     // Use virtual resistor method
     double rVirt = std::min(rs, rl) / (1.0 + targetQ * targetQ);
-    
+
     // Q1 for source side
     double q1 = std::sqrt(rs / rVirt - 1.0);
     double b1 = q1 / rs;  // Shunt susceptance at source
     double x1 = q1 * rVirt;  // Series reactance (part 1)
-    
+
     // Q2 for load side
     double q2 = std::sqrt(rl / rVirt - 1.0);
     double b2 = q2 / rl;  // Shunt susceptance at load
     double x2 = q2 * rVirt;  // Series reactance (part 2)
-    
-    double xTotal = x1 + x2;  // Total series reactance
-    
-    // Create solution with shunt capacitors and series inductor
+
+    // Total series reactance: absorb existing source and load reactance
+    double xTotal = x1 + x2 - xs - xl;
+
+    // Create solution
     MatchingSolution sol;
     sol.topology = MatchingTopology::PiNetwork;
     sol.frequency = m_frequency;
     sol.sourceZ = m_sourceZ;
     sol.loadZ = m_loadZ;
     sol.valid = true;
-    
-    // Shunt C at source
-    MatchingElement c1;
-    c1.connection = ConnectionType::Shunt;
-    c1.type = ComponentType::Capacitor;
-    c1.value = susceptanceToCapacitance(b1, m_frequency);
-    sol.elements.push_back(c1);
-    
-    // Series L
-    MatchingElement l;
-    l.connection = ConnectionType::Series;
-    l.type = ComponentType::Inductor;
-    l.value = reactanceToInductance(xTotal, m_frequency);
-    sol.elements.push_back(l);
-    
-    // Shunt C at load
-    MatchingElement c2;
-    c2.connection = ConnectionType::Shunt;
-    c2.type = ComponentType::Capacitor;
-    c2.value = susceptanceToCapacitance(b2, m_frequency);
-    sol.elements.push_back(c2);
-    
+
+    // Shunt element at source
+    MatchingElement shunt1;
+    shunt1.connection = ConnectionType::Shunt;
+    if (b1 > 0) {
+        shunt1.type = ComponentType::Capacitor;
+        shunt1.value = susceptanceToCapacitance(b1, m_frequency);
+    } else {
+        shunt1.type = ComponentType::Inductor;
+        shunt1.value = susceptanceToInductance(b1, m_frequency);
+    }
+    sol.elements.push_back(shunt1);
+
+    // Series element (absorb reactance from source and load)
+    MatchingElement series;
+    series.connection = ConnectionType::Series;
+    if (xTotal > 0) {
+        series.type = ComponentType::Inductor;
+        series.value = reactanceToInductance(xTotal, m_frequency);
+    } else {
+        series.type = ComponentType::Capacitor;
+        series.value = reactanceToCapacitance(xTotal, m_frequency);
+    }
+    sol.elements.push_back(series);
+
+    // Shunt element at load
+    MatchingElement shunt2;
+    shunt2.connection = ConnectionType::Shunt;
+    if (b2 > 0) {
+        shunt2.type = ComponentType::Capacitor;
+        shunt2.value = susceptanceToCapacitance(b2, m_frequency);
+    } else {
+        shunt2.type = ComponentType::Inductor;
+        shunt2.value = susceptanceToInductance(b2, m_frequency);
+    }
+    sol.elements.push_back(shunt2);
+
     solutions.push_back(sol);
-    
+
     return solutions;
 }
 
 std::vector<MatchingSolution> MatchingCalculator::calculateTNetwork(double targetQ) const
 {
     std::vector<MatchingSolution> solutions;
-    
+
     double rs = m_sourceZ.real();
+    double xs = m_sourceZ.imag();
     double rl = m_loadZ.real();
-    
+    double xl = m_loadZ.imag();
+
     if (rs <= 0 || rl <= 0) return solutions;
-    
-    // T network: L1-C-L2 or C1-L-C2
+
+    // T network: Series1 - Shunt - Series2
     double rVirt = std::max(rs, rl) * (1.0 + targetQ * targetQ);
-    
+
     double q1 = std::sqrt(rVirt / rs - 1.0);
-    double x1 = q1 * rs;  // Series reactance at source
-    double b = q1 / rVirt;  // Shunt susceptance
-    
+    double x1 = q1 * rs - xs;  // Series reactance at source (absorb xs)
+    double b = q1 / rVirt;     // Shunt susceptance (part 1)
+
     double q2 = std::sqrt(rVirt / rl - 1.0);
-    double x2 = q2 * rl;  // Series reactance at load
-    double b2 = q2 / rVirt;
-    
+    double x2 = q2 * rl - xl;  // Series reactance at load (absorb xl)
+    double b2 = q2 / rVirt;    // Shunt susceptance (part 2)
+
     double bTotal = b + b2;
-    
+
     // Create solution
     MatchingSolution sol;
     sol.topology = MatchingTopology::TNetwork;
@@ -407,30 +425,45 @@ std::vector<MatchingSolution> MatchingCalculator::calculateTNetwork(double targe
     sol.sourceZ = m_sourceZ;
     sol.loadZ = m_loadZ;
     sol.valid = true;
-    
-    // Series L at source
-    MatchingElement l1;
-    l1.connection = ConnectionType::Series;
-    l1.type = ComponentType::Inductor;
-    l1.value = reactanceToInductance(x1, m_frequency);
-    sol.elements.push_back(l1);
-    
-    // Shunt C
-    MatchingElement c;
-    c.connection = ConnectionType::Shunt;
-    c.type = ComponentType::Capacitor;
-    c.value = susceptanceToCapacitance(bTotal, m_frequency);
-    sol.elements.push_back(c);
-    
-    // Series L at load
-    MatchingElement l2;
-    l2.connection = ConnectionType::Series;
-    l2.type = ComponentType::Inductor;
-    l2.value = reactanceToInductance(x2, m_frequency);
-    sol.elements.push_back(l2);
-    
+
+    // Series element at source
+    MatchingElement s1;
+    s1.connection = ConnectionType::Series;
+    if (x1 > 0) {
+        s1.type = ComponentType::Inductor;
+        s1.value = reactanceToInductance(x1, m_frequency);
+    } else {
+        s1.type = ComponentType::Capacitor;
+        s1.value = reactanceToCapacitance(x1, m_frequency);
+    }
+    sol.elements.push_back(s1);
+
+    // Shunt element
+    MatchingElement shunt;
+    shunt.connection = ConnectionType::Shunt;
+    if (bTotal > 0) {
+        shunt.type = ComponentType::Capacitor;
+        shunt.value = susceptanceToCapacitance(bTotal, m_frequency);
+    } else {
+        shunt.type = ComponentType::Inductor;
+        shunt.value = susceptanceToInductance(bTotal, m_frequency);
+    }
+    sol.elements.push_back(shunt);
+
+    // Series element at load
+    MatchingElement s2;
+    s2.connection = ConnectionType::Series;
+    if (x2 > 0) {
+        s2.type = ComponentType::Inductor;
+        s2.value = reactanceToInductance(x2, m_frequency);
+    } else {
+        s2.type = ComponentType::Capacitor;
+        s2.value = reactanceToCapacitance(x2, m_frequency);
+    }
+    sol.elements.push_back(s2);
+
     solutions.push_back(sol);
-    
+
     return solutions;
 }
 
@@ -466,8 +499,9 @@ std::vector<MatchingSolution> MatchingCalculator::calculateSingleStub() const
             t2 = t1;
         } else {
             double A = (1 - g) * (1 - g) + b * b;
-            double B_val = b + std::sqrt(g * A / g);
-            double C_val = b - std::sqrt(g * A / g);
+            double sqrtGA = std::sqrt(g * A);
+            double B_val = b + sqrtGA;
+            double C_val = b - sqrtGA;
             double D = g - 1.0;
             
             if (std::abs(D) > 1e-10) {
@@ -504,7 +538,7 @@ std::vector<MatchingSolution> MatchingCalculator::calculateSingleStub() const
                 sol.loadZ = m_loadZ;
                 sol.valid = true;
                 
-                double l_open = std::atan(B_stub) / beta;
+                double l_open = std::atan(-B_stub) / beta;
                 if (l_open < 0) l_open += lambda / 2.0;
                 
                 // Transmission line element (distance to stub)

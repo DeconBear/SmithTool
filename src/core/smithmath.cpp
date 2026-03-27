@@ -124,9 +124,9 @@ double SmithMath::gammaToReturnLoss(const Complex& gamma)
 {
     double mag = std::abs(gamma);
     if (mag < 1e-12) {
-        return -200.0;  // Very good match (essentially -infinity dB)
+        return 200.0;  // Very good match (essentially infinite dB)
     }
-    return 20.0 * std::log10(mag);
+    return -20.0 * std::log10(mag);
 }
 
 bool SmithMath::isInsideUnitCircle(const Complex& gamma)

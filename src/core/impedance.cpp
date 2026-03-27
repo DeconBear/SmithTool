@@ -91,9 +91,9 @@ double ReflectionCoeff::mismatchLossDb() const
     double mag = magnitude();
     double mag2 = mag * mag;
     if (mag2 >= 1.0) {
-        return -100.0;
+        return 100.0;
     }
-    return 10.0 * std::log10(1.0 - mag2);
+    return -10.0 * std::log10(1.0 - mag2);
 }
 
 Impedance ReflectionCoeff::toImpedance() const
