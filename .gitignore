@@ -27,7 +27,13 @@ CMakeFiles/
 /deploy/release/
 /deploy/windows/installer/
 /deploy/linux/dist/
-/.claude
+
+# Claude local files
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.claude.json
+.claude.json.backup
 
 # IDE/editor files
 .idea/
