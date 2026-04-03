@@ -27,6 +27,7 @@ CMakeFiles/
 /deploy/release/
 /deploy/windows/installer/
 /deploy/linux/dist/
+/.claude
 
 # IDE/editor files
 .idea/
